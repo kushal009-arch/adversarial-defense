@@ -1,0 +1,12 @@
+# Environments 
+venv/
+__pycache__/
+.env
+
+# Data and Models
+data/
+models/*.pth
+
+# OS generated files
+.DS_Store
+Thumbs.db
