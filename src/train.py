@@ -5,6 +5,7 @@ It loads the training dataset, feeds it through the model, computes the loss (ho
 """
 
 import torch 
+import os
 import torch.nn as nn
 import torch.optim as optim
 from data_loader import get_data_loaders
@@ -62,7 +63,6 @@ def train_model(epochs=5, learning_rate=0.001):
 
         print(f"Epoch [{epoch+1}/{epochs}] - Loss: {running_loss/len(train_loader):.4f}")
 
-    import os
     os.makedirs("models", exist_ok=True)
     torch.save(model.state_dict(), "models/baseline_model.pth")
     print("Finished Training! Saved model to models/baseline_model.pth")
