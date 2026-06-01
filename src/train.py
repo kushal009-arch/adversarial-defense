@@ -62,7 +62,10 @@ def train_model(epochs=5, learning_rate=0.001):
 
         print(f"Epoch [{epoch+1}/{epochs}] - Loss: {running_loss/len(train_loader):.4f}")
 
-    print("Finished Training!")
+    import os
+    os.makedirs("models", exist_ok=True)
+    torch.save(model.state_dict(), "models/baseline_model.pth")
+    print("Finished Training! Saved model to models/baseline_model.pth")
     return model
 
 if __name__ == "__main__":
