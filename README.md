@@ -17,6 +17,10 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Builds and prints a textual confusion matrix.
   - Generates and saves a visual heatmap visualization under `reports/figures/` (ignored by git).
   - Fully annotated with docstrings and comments.
+- **`src/attack.py`**: An adversarial attack utility script that demonstrates how to extract gradients from an input image with respect to the classification loss.
+  - Demonstrates how to enable gradients on input tensors (`data.requires_grad = True`).
+  - Implements gradient retrieval to analyze how pixels should be perturbed to increase model classification loss.
+  - Fully annotated with clean, beginner-friendly docstrings and comments.
 
 ## Getting Started
 
@@ -45,4 +49,10 @@ python src/train.py
 You can evaluate the trained model and view the accuracy and confusion matrix:
 ```bash
 python src/evaluate.py
+```
+
+#### 4. Extract Image Gradients (Adversarial Step)
+You can run the attack script to extract the gradient map from a test image:
+```bash
+python src/attack.py
 ```
