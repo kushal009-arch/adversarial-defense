@@ -18,6 +18,12 @@ def extract_image_gradient():
     
     This gradient tells us how we need to perturb the image pixels to
     increase the model's classification loss (making it misclassify).
+
+    Returns:
+        tuple: A tuple containing:
+            - data (torch.Tensor): The original input image tensor.
+            - gradient_map (torch.Tensor): The gradient of the loss with respect to the input image.
+            - target (torch.Tensor): The true classification label of the image.
     """
     # Use GPU if available, otherwise fallback to CPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -60,5 +66,37 @@ def extract_image_gradient():
 
     return data, gradient_map, target
 
+def fgsm_attack(image, epsilon, data_grad):
+    """
+    Performs the Fast Gradient Sign Method (FGSM) attack on an input image.
+
+    This method perturbs the input image in the direction of the gradient of the loss
+    with respect to the image, scaled by epsilon, in order to maximize the loss.
+
+    Args:
+        image (torch.Tensor): The original input image tensor.
+        epsilon (float): The step size / perturbation magnitude.
+        data_grad (torch.Tensor): The gradient of the loss with respect to the input image.
+
+    Returns:
+        torch.Tensor: The perturbed, adversarial image tensor.
+    """
+    # 1. Collect element-wise sign of the data gradient
+    signed_data_grad = data_grad.sign()
+
+    # 2. Create the perturbed image
+    perturbed_image = image + epsilon * signed_data_grad
+
+    # 3. Snap any out-of-bounds pixel values back to the valid [0, 1] range
+    perturbed_image = torch.clamp(perturbed_image, 0, 1) 
+
+    return perturbed_image
+    
 if __name__ == "__main__":
-    extract_image_gradient()
+    clean_image, raw_grad, true_label = extract_image_gradient()
+
+    epsilon = 0.05
+
+    adv_image = fgsm_attack(clean_image, epsilon, raw_grad)
+
+    print(f"Adversarial Image Successfully generated. Shape: {adv_image.shape}")
