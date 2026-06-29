@@ -17,10 +17,11 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Builds and prints a textual confusion matrix.
   - Generates and saves a visual heatmap visualization under `reports/figures/` (ignored by git).
   - Fully annotated with docstrings and comments.
-- **`src/attack.py`**: An adversarial attack utility script that demonstrates how to extract gradients from an input image with respect to the classification loss.
+- **`src/attack.py`**: An adversarial attack utility script that implements the **Fast Gradient Sign Method (FGSM)**.
   - Demonstrates how to enable gradients on input tensors (`data.requires_grad = True`).
-  - Implements gradient retrieval to analyze how pixels should be perturbed to increase model classification loss.
-  - Fully annotated with clean, beginner-friendly docstrings and comments.
+  - Implements gradient extraction of the loss with respect to the input image.
+  - Implements the core FGSM attack logic (`fgsm_attack`) to perturb the input image in the direction of the gradient sign, scaled by `epsilon`, to maximize classification loss and trigger misclassification.
+  - Fully annotated with clean, professional docstrings and comments.
 
 ## Getting Started
 
@@ -51,8 +52,8 @@ You can evaluate the trained model and view the accuracy and confusion matrix:
 python src/evaluate.py
 ```
 
-#### 4. Extract Image Gradients (Adversarial Step)
-You can run the attack script to extract the gradient map from a test image:
+#### 4. Run Adversarial Attack (FGSM)
+You can run the attack script to extract the gradient map and generate a perturbed adversarial image using the FGSM attack:
 ```bash
 python src/attack.py
 ```
