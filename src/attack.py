@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from data_loader import get_data_loaders
 from model import SimpleCNN
 
-def extract_image_gradient():
+def extract_image_gradient(model=None, data=None, target=None):
     """
     Loads a pre-trained CNN model and computes the gradient of the loss
     with respect to a single test image.
@@ -26,17 +26,22 @@ def extract_image_gradient():
             - target (torch.Tensor): The true classification label of the image.
     """
     # Use GPU if available, otherwise fallback to CPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if model is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # 1. Load the trained model and put it in evaluation mode
-    model = SimpleCNN().to(device)
-    model.load_state_dict(torch.load("models/baseline_model.pth", map_location=device))
-    model.eval()
+        model = SimpleCNN().to(device)
+        model.load_state_dict(torch.load("models/baseline_model.pth", map_location=device))
+        model.eval()
+    
+    else:
+        device = next(model.parameters()).device
 
-    # 2. Get a single image and its correct label from the test dataset
-    _, test_loader, _ = get_data_loaders(batch_size=1)
-    data, target = next(iter(test_loader))
-    data, target = data.to(device), target.to(device)
+    if data is None or target is None:
+        # 2. Get a single image and its correct label from the test dataset
+        _, test_loader, _ = get_data_loaders(batch_size=1)
+        data, target = next(iter(test_loader))
+        data, target = data.to(device), target.to(device)
 
     # 3. Tell PyTorch to track gradients for the input image itself
     # (By default, PyTorch only tracks gradients for model parameters)
@@ -59,10 +64,10 @@ def extract_image_gradient():
     gradient_map = data.grad.detach()
 
     # Log shape and sample details to verify the output
-    print(f"Original Image Shape: {data.shape}")
-    print(f"Gradient Map Shape: {gradient_map.shape}")
-    print(f"\nSample Gradient Values (first 5 pixels of the red channel):")
-    print(gradient_map[0][0][0][:5])
+    # print(f"Original Image Shape: {data.shape}")
+    # print(f"Gradient Map Shape: {gradient_map.shape}")
+    # print(f"\nSample Gradient Values (first 5 pixels of the red channel):")
+    # print(gradient_map[0][0][0][:5])
 
     return data, gradient_map, target
 
