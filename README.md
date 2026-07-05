@@ -19,9 +19,12 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Fully annotated with docstrings and comments.
 - **`src/attack.py`**: An adversarial attack utility script that implements the **Fast Gradient Sign Method (FGSM)**.
   - Demonstrates how to enable gradients on input tensors (`data.requires_grad = True`).
-  - Implements gradient extraction of the loss with respect to the input image.
+  - Implements gradient extraction of the loss with respect to the input image(s), supporting both single-image analysis and batch processing.
   - Implements the core FGSM attack logic (`fgsm_attack`) to perturb the input image in the direction of the gradient sign, scaled by `epsilon`, to maximize classification loss and trigger misclassification.
   - Fully annotated with clean, professional docstrings and comments.
+- **`src/evasion_testing.py`**: A testing script that runs the FGSM attack across the entire CIFAR-10 test dataset for multiple epsilon values.
+  - Computes and outputs the evasion curve values (epsilon vs. robust accuracy) to measure the model's adversarial robustness.
+  - Fully annotated with docstrings and inline comments.
 
 ## Getting Started
 
@@ -56,4 +59,10 @@ python src/evaluate.py
 You can run the attack script to extract the gradient map and generate a perturbed adversarial image using the FGSM attack:
 ```bash
 python src/attack.py
+```
+
+#### 5. Evaluate Evasion Curve
+You can run the evasion testing script to trace the model's robust accuracy across a range of epsilon perturbation budgets:
+```bash
+python src/evasion_testing.py
 ```
