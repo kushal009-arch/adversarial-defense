@@ -25,6 +25,9 @@ This repository is dedicated to exploring and implementing techniques for advers
 - **`src/evasion_testing.py`**: A testing script that runs the FGSM attack across the entire CIFAR-10 test dataset for multiple epsilon values.
   - Computes and outputs the evasion curve values (epsilon vs. robust accuracy) to measure the model's adversarial robustness.
   - Fully annotated with docstrings and inline comments.
+- **`src/plot_evasion_curve.py`**: A plotting utility script that takes the robust accuracy metrics across different epsilon values and generates a professional line plot.
+  - Saves the generated evasion curve figure to `results/figures/evasion_curve.png`.
+  - Fully annotated with docstrings and comments.
 
 ## Getting Started
 
@@ -65,4 +68,10 @@ python src/attack.py
 You can run the evasion testing script to trace the model's robust accuracy across a range of epsilon perturbation budgets:
 ```bash
 python src/evasion_testing.py
+```
+
+#### 6. Plot Evasion Curve
+You can run the plotting script to generate and save a visualization of the evasion curve:
+```bash
+python src/plot_evasion_curve.py
 ```
