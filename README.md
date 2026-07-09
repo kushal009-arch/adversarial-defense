@@ -28,6 +28,8 @@ This repository is dedicated to exploring and implementing techniques for advers
 - **`src/plot_evasion_curve.py`**: A plotting utility script that takes the robust accuracy metrics across different epsilon values and generates a professional line plot.
   - Saves the generated evasion curve figure to `results/figures/evasion_curve.png`.
   - Fully annotated with docstrings and comments.
+- **`src/visualize_illusion.py`**: A visualization utility that generates a comparative side-by-side diagnostic panel of clean images, their extracted gradient noise maps, and the resulting adversarial images.
+  - Saves the visualization grid to `results/figures/optical_illusion_panel.png`.
 
 ## Getting Started
 
@@ -75,3 +77,20 @@ You can run the plotting script to generate and save a visualization of the evas
 ```bash
 python src/plot_evasion_curve.py
 ```
+
+#### 7. Visualize Adversarial Illusion Panel
+You can run the visualization script to generate a side-by-side comparison of clean and adversarial images:
+```bash
+python src/visualize_illusion.py
+```
+
+### Adversarial Optical Illusion Diagnostics (`results/figures/optical_illusion_panel.png`)
+
+This diagnostic panel displays:
+1. **Clean Image**: The original test image (which the model correctly classifies).
+2. **Gradient Noise Map**: The direction of the loss gradient ($\text{sign}(\nabla_x L)$) visualized in grayscale.
+3. **Adversarial Image**: The clean image perturbed by adding the noise map (scaled by $\epsilon=0.03$).
+
+**Why it looks the way it does:**
+- **To humans**: The clean and adversarial images look virtually identical because the added noise is extremely small.
+- **To the model**: The noise is mathematically optimized to push the image's features across the model's classification decision boundaries. This triggers a misclassification (highlighted in red), creating an "optical illusion" for the CNN.
