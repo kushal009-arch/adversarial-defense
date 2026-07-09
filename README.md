@@ -29,7 +29,7 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Saves the generated evasion curve figure to `results/figures/evasion_curve.png`.
   - Fully annotated with docstrings and comments.
 - **`src/visualize_illusion.py`**: A visualization utility that generates a comparative side-by-side diagnostic panel of clean images, their extracted gradient noise maps, and the resulting adversarial images.
-  - Saves the visualization grid to `results/figures/optical_illusion_panel.png`.
+  - Saves the visualization grid to `reports/figures/optical_illusion_panel.png`.
 
 ## Getting Started
 
@@ -84,7 +84,7 @@ You can run the visualization script to generate a side-by-side comparison of cl
 python src/visualize_illusion.py
 ```
 
-### Adversarial Optical Illusion Diagnostics (`results/figures/optical_illusion_panel.png`)
+### Adversarial Optical Illusion Diagnostics (`reports/figures/optical_illusion_panel.png`)
 
 This diagnostic panel displays:
 1. **Clean Image**: The original test image (which the model correctly classifies).
