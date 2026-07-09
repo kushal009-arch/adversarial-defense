@@ -37,6 +37,7 @@ def get_data_loaders(
     batch_size: int = 128,
     data_dir: str = "./data",
     num_workers: int = 2,
+    shuffle_test: bool = False
 ) -> Tuple[DataLoader, DataLoader, Tuple[str, ...]]:
     """
     Create train/test DataLoaders for CIFAR-10.
@@ -90,7 +91,7 @@ def get_data_loaders(
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=False,  # Keep test order stable for evaluation.
+        shuffle=shuffle_test,  # Keep test order stable for evaluation.
         num_workers=num_workers,
     )
 
