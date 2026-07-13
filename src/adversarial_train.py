@@ -11,51 +11,93 @@ from train import train_model
 
 def train_adversarial_epoch(model, train_loader, criterion, optimizer, epsilon, device):
     """
-    Executes a single min-max robust optimization training epoch
+    Executes a single epoch of adversarial training using min-max robust optimization.
+
+    This function implements a 2-step min-max training procedure:
+    1. Inner Maximizer (Attack): Generates adversarial perturbations via FGSM to maximize the classification loss.
+    2. Outer Minimizer (Defense): Updates the model parameters to minimize the classification loss on those adversarial samples.
+
+    Args:
+        model (torch.nn.Module): The neural network model to train.
+        train_loader (torch.utils.data.DataLoader): DataLoader supplying the training dataset.
+        criterion (torch.nn.modules.loss._Loss): The loss function (e.g. CrossEntropyLoss).
+        optimizer (torch.optim.Optimizer): The optimizer (e.g. SGD).
+        epsilon (float): The maximum perturbation budget for the FGSM attack.
+        device (torch.device): Device on which training is executed (CPU or CUDA).
+
+    Returns:
+        tuple (float, float):
+            - Average clean loss over the epoch.
+            - Average robust (adversarial) loss over the epoch.
     """
-    model.train() # CHECK THIS BEFORE GIT PUSH --> model has no train module, should we use train_model() from train?
+    # Put the model in training mode (enables dropout, updates batch norm stats, etc.)
+    model.train()
+    
     total_clean_loss = 0
     total_robust_loss = 0
     total_samples = 0
 
     for x, y in train_loader:
-        x, y = x.to(device), y.to(device) # x, y represent images, labels
+        # Move data to the active device (GPU or CPU)
+        x, y = x.to(device), y.to(device)
         batch_size = x.size(0)
         total_samples += batch_size
 
-        # -- Step A: The inner maximizer (Attack) --
-        x.requires_grad = True  # This is True because in standard training, requires_grad is set to True by default 
-                                # for model weights (theta), but is set to False by default for input images (x). 
-                                # In FGSM, we need the gradient of the Loss Function with respect to x, which we 
-                                # can only obtain when we explicitly set x.requires_grad to True.
+        # -- Step A: The Inner Maximizer (Attack) --
+        
+        # Enable gradient tracking on the input images.
+        # By default, PyTorch only tracks gradients for model parameters.
+        # For FGSM, we need the gradient of the loss with respect to the input image (x).
+        x.requires_grad = True
 
+        # Forward pass on clean (unperturbed) images
         outputs = model(x)
         loss = criterion(outputs, y)
         total_clean_loss += loss.item() * batch_size
 
-        # Clear any existing gradient before attacking
+        # Reset model gradients before computing the input gradients
         model.zero_grad()
+        
+        # Backward pass to calculate gradients w.r.t. the inputs (x.grad)
         loss.backward()
 
-        # Generate Adversarial Images
-        x_adv = x +  epsilon * x.grad.sign()
+        # Generate Adversarial Images using the Fast Gradient Sign Method (FGSM).
+        # We perturb the image in the direction of the gradient sign to maximize loss.
+        x_adv = x + epsilon * x.grad.sign()
+        
+        # Clamp the adversarial images to the valid pixel value range [0, 1]
         x_adv = torch.clamp(x_adv, 0.0, 1.0)
 
+        # Detach the adversarial images from the current computation graph.
+        # This treats them as static input data for the subsequent training step.
         x_adv = x_adv.detach()
 
-        # -- Step B: The outer minimizer (Defense) --
-        optimizer.zero_grad() 
+        # -- Step B: The Outer Minimizer (Defense) --
+        
+        # Zero out the parameter gradients for the model optimizer
+        optimizer.zero_grad()
 
+        # Forward pass using the perturbed adversarial images
         outputs_adv = model(x_adv)
+        
+        # Calculate robust classification loss on adversarial samples
         loss_robust = criterion(outputs_adv, y)
         total_robust_loss += loss_robust.item() * batch_size
 
+        # Backward pass to calculate gradients w.r.t. model parameters
         loss_robust.backward()
+        
+        # Update model weights based on the robust loss gradients
         optimizer.step()
 
-    return total_clean_loss / total_samples , total_robust_loss / total_samples
+    # Return the average clean and robust loss values for the epoch
+    return total_clean_loss / total_samples, total_robust_loss / total_samples
 
 def main():
+    """
+    Initializes training components (device, model, loader, optimizer, criterion)
+    and executes the adversarial training loop, saving the robust model parameters.
+    """
     # 1. Initialization
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on device: {device}")
