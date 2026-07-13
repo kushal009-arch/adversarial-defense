@@ -104,3 +104,21 @@ This diagnostic panel displays:
 **Why it looks the way it does:**
 - **To humans**: The clean and adversarial images look virtually identical because the added noise is extremely small.
 - **To the model**: The noise is mathematically optimized to push the image's features across the model's classification decision boundaries. This triggers a misclassification (highlighted in red), creating an "optical illusion" for the CNN.
+
+---
+
+### Log Analysis: Why This Happened
+
+```text
+[*] Launching min-max optimization training loop across adversarial batches...
+Epoch [01/05] -> Clean Loss: 2.0630 | Robust Loss: 2.0022
+Epoch [02/05] -> Clean Loss: 1.9162 | Robust Loss: 1.7573
+Epoch [03/05] -> Clean Loss: 2.7657 | Robust Loss: 1.6260
+Epoch [04/05] -> Clean Loss: 3.9940 | Robust Loss: 1.5250
+Epoch [05/05] -> Clean Loss: 6.1424 | Robust Loss: 1.4278
+```
+
+* **Robust Loss Decreased ($2.00 \to 1.43$):** The model learns to defend itself, successfully minimizing errors on worst-case FGSM inputs.
+* **Clean Loss Skyrocketed ($2.06 \to 6.14$):** Over-defense degrades baseline classification accuracy.
+* **Boundary Warping:** Training on 100% adversarial batches distorts decision boundaries around noise. Without clean anchors, normal boundaries shift out of alignment.
+* **Feature Sacrifice:** The network ignores fragile, high-frequency details to survive attacks, breaking its ability to recognize un-attacked images.
