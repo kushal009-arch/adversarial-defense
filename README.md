@@ -34,6 +34,10 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Generates adversarial examples inline using the Fast Gradient Sign Method (FGSM).
   - Trains the model weights on these perturbed inputs using SGD with momentum.
   - Logs clean and robust loss values per epoch and saves the hardened model weights to `models/robust_model.pth`.
+- **`src/train_robust.py`**: A robust mixed-batch training engine.
+  - Utilizes a mixed-batch training strategy to optimize both clean accuracy and adversarial robustness.
+  - Implements a loss blending technique where the total loss is a weighted sum (controlled by `ALPHA = 0.5`) of clean and FGSM-perturbed image loss.
+  - Fully annotated with docstrings and clean code layout.
 
 ## Getting Started
 
@@ -58,37 +62,43 @@ You can execute the training pipeline directly to train the model on the CIFAR-1
 python src/train.py
 ```
 
-#### 3. Train the Model (Adversarial)
+#### 3. Train the Model (Adversarial - 100% Adversarial Batches)
 You can execute the adversarial training pipeline to harden the model against FGSM attacks:
 ```bash
 python src/adversarial_train.py
 ```
 
-#### 4. Evaluate the Model
+#### 4. Train the Model (Robust - Mixed Clean/Adversarial Batches)
+You can execute the mixed robust training pipeline using a combination of clean and adversarial data:
+```bash
+python src/train_robust.py
+```
+
+#### 5. Evaluate the Model
 You can evaluate the trained model and view the accuracy and confusion matrix:
 ```bash
 python src/evaluate.py
 ```
 
-#### 5. Run Adversarial Attack (FGSM)
+#### 6. Run Adversarial Attack (FGSM)
 You can run the attack script to extract the gradient map and generate a perturbed adversarial image using the FGSM attack:
 ```bash
 python src/attack.py
 ```
 
-#### 6. Evaluate Evasion Curve
+#### 7. Evaluate Evasion Curve
 You can run the evasion testing script to trace the model's robust accuracy across a range of epsilon perturbation budgets:
 ```bash
 python src/evasion_testing.py
 ```
 
-#### 7. Plot Evasion Curve
+#### 8. Plot Evasion Curve
 You can run the plotting script to generate and save a visualization of the evasion curve:
 ```bash
 python src/plot_evasion_curve.py
 ```
 
-#### 8. Visualize Adversarial Illusion Panel
+#### 9. Visualize Adversarial Illusion Panel
 You can run the visualization script to generate a side-by-side comparison of clean and adversarial images:
 ```bash
 python src/visualize_illusion.py
