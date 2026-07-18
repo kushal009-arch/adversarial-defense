@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from model import SimpleCNN
 from data_loader import get_data_loaders
+from visualize_illusion import generate_visual_panel
 
 # Hyperparameter configuration
 ALPHA = 0.5
@@ -152,6 +153,14 @@ def main():
     # Step 7: Serialize and save final model checkpoint
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
     print(f"\nModel checkpoint successfully compiled and saved to: {MODEL_SAVE_PATH}")
+
+    # Step 8: Generate visual diagnostic illusion panel for the robust model
+    print("\n--- Generating Evasion Diagnostic Panel ---")
+    generate_visual_panel(
+        model_path=MODEL_SAVE_PATH,
+        save_dir="reports/figures",
+        filename="robust_illusion_panel.png"
+    )
 
 if __name__ == "__main__":
     main()

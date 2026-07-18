@@ -51,7 +51,7 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     # 5. Permute the dimensions from PyTorch (Channels, Height, Width) to Matplotlib (Height, Width, Channels)
     return x.permute(1, 2, 0).numpy()
 
-def generate_visual_panel(model_path, save_dir="reports/figures"):
+def generate_visual_panel(model_path, save_dir="reports/figures", filename="optical_illusion_panel.png"):
     """
     Loads the trained model, extracts a batch of test images, computes their gradients,
     creates adversarial examples using FGSM, and plots a comparative 3-column diagnostic panel.
@@ -64,6 +64,7 @@ def generate_visual_panel(model_path, save_dir="reports/figures"):
     Args:
         model_path (str): File path to the trained model's state dictionary (.pth).
         save_dir (str): Folder where the completed visualization panel should be saved.
+        filename (str): Name of the saved image file.
     """
     # Choose processing hardware
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -94,7 +95,7 @@ def generate_visual_panel(model_path, save_dir="reports/figures"):
     data_grad = images.grad.data 
 
     # 7. Apply the FGSM attack to generate perturbed adversarial images
-    epsilon = 0.03
+    epsilon = 0.003
     adv_images = fgsm_attack(images, epsilon, data_grad)
 
     # 8. Run inference on both clean and adversarial images to compare predictions
@@ -135,7 +136,7 @@ def generate_visual_panel(model_path, save_dir="reports/figures"):
         axes[i, 2].axis('off')
 
     # 11. Save the completed plot grid to file
-    output_path = os.path.join(save_dir, "optical_illusion_panel.png")
+    output_path = os.path.join(save_dir, filename)
     plt.savefig(output_path, bbox_inches='tight', dpi=300)
     plt.close()
     print(f"[SUCCESS] Visual diagnostic panel saved successfully to: {output_path}")
