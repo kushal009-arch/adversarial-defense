@@ -1,4 +1,7 @@
 # import all necessary modules 
+"""
+Module for robust training of a simple CNN model on CIFAR-10 using Fast Gradient Sign Method (FGSM) adversarial training.
+"""
 import os
 import torch 
 import torch.nn as nn
@@ -16,6 +19,19 @@ MODEL_SAVE_PATH = "models/robust_model.pth"
 
 # Inner maximization solver (FGSM Batch generator)
 def generate_fgsm_batch(model, images, labels, EPSILON, criterion):
+    """
+    Generates adversarial images using the Fast Gradient Sign Method (FGSM).
+
+    Args:
+        model (nn.Module): The PyTorch neural network model.
+        images (torch.Tensor): A batch of clean input images.
+        labels (torch.Tensor): True labels associated with the images.
+        EPSILON (float): Perturbation strength parameter for the attack.
+        criterion (nn.modules.loss._Loss): The loss function used to calculate gradients.
+
+    Returns:
+        torch.Tensor: A batch of perturbed, adversarial images detached from the computation graph.
+    """
     images_clone = images.clone().detach()
     images_clone.requires_grad = True
 
@@ -35,6 +51,20 @@ def generate_fgsm_batch(model, images, labels, EPSILON, criterion):
 
 # Outer maximizatoin loop (Mixed batch training engine)
 def train_robust_epoch(model, loader, optimizer, criterion, device):
+    """
+    Trains the model for one epoch using a mixture of clean and adversarial examples.
+
+    Args:
+        model (nn.Module): The model to train.
+        loader (DataLoader): The clean data loader (unused in favor of local CIFAR10 loading).
+        optimizer (optim.Optimizer): The optimizer to update model parameters.
+        criterion (nn.modules.loss._Loss): The loss function.
+        device (torch.device): The device (CPU or CUDA) to run training on.
+
+    Returns:
+        tuple: (epoch_loss, clean_acc, adv_acc) containing the average mixed loss,
+               accuracy on clean images (%), and accuracy on adversarial images (%) for the epoch.
+    """
     model.train()
     running_loss = 0.0
     correct_clean = 0
@@ -74,6 +104,11 @@ def train_robust_epoch(model, loader, optimizer, criterion, device):
 
 # execution pipeline infrastructure
 def main():
+    """
+    Sets up the device, initializes data loaders and the SimpleCNN model, 
+    and runs the full adversarial robust training loop for the configured number of epochs.
+    Finally, saves the robust model state dictionary to the designated path.
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using Device: {device}")
 
