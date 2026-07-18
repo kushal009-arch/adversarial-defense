@@ -56,7 +56,7 @@ def train_robust_epoch(model, loader, optimizer, criterion, device):
 
     Args:
         model (nn.Module): The model to train.
-        loader (DataLoader): The clean data loader (unused in favor of local CIFAR10 loading).
+        loader (DataLoader): The clean data loader used for training.
         optimizer (optim.Optimizer): The optimizer to update model parameters.
         criterion (nn.modules.loss._Loss): The loss function.
         device (torch.device): The device (CPU or CUDA) to run training on.
@@ -65,37 +65,49 @@ def train_robust_epoch(model, loader, optimizer, criterion, device):
         tuple: (epoch_loss, clean_acc, adv_acc) containing the average mixed loss,
                accuracy on clean images (%), and accuracy on adversarial images (%) for the epoch.
     """
+    # Step 1: Put the model in training mode
     model.train()
     running_loss = 0.0
     correct_clean = 0
     correct_adv = 0
     total_samples = 0
 
-    train_loader, test_loader, CIFAR10_CLASSES = get_data_loaders(batch_size=64)
-    for images, labels in train_loader:
+    # Step 2: Loop over batches of clean images and labels from the provided data loader
+    for images, labels in loader:
+        # Step 3: Move data to the active device (GPU or CPU)
         images, labels = images.to(device), labels.to(device)
         batch_size_current = images.size(0)
 
+        # Step 4: Generate adversarial examples for the current batch using FGSM
         images_adv = generate_fgsm_batch(model, images, labels, EPSILON, criterion)
 
+        # Step 5: Reset optimizer gradients
         optimizer.zero_grad()
 
+        # Step 6: Forward pass on clean images and compute clean loss
         output_clean = model(images)
         loss_clean = criterion(output_clean, labels)
 
+        # Step 7: Forward pass on adversarial images and compute adversarial loss
         output_adv = model(images_adv)
         loss_adv = criterion(output_adv, labels)
 
-        loss_mixed = (ALPHA * loss_clean) + ((1-ALPHA) * loss_adv)
+        # Step 8: Blend clean and adversarial losses using ALPHA weighting
+        loss_mixed = (ALPHA * loss_clean) + ((1 - ALPHA) * loss_adv)
 
+        # Step 9: Backward pass to compute gradients
         loss_mixed.backward()
+        
+        # Step 10: Update model parameters
         optimizer.step()
 
+        # Step 11: Accumulate training metrics
         running_loss += loss_mixed.item() * batch_size_current
         correct_clean += output_clean.argmax(dim=1).eq(labels).sum().item()
         correct_adv += output_adv.argmax(dim=1).eq(labels).sum().item()
         total_samples += batch_size_current
 
+    # Step 12: Calculate final metrics for the epoch
     epoch_loss = running_loss / total_samples
     clean_acc = (correct_clean / total_samples) * 100.0
     adv_acc = (correct_adv / total_samples) * 100.0
@@ -109,18 +121,26 @@ def main():
     and runs the full adversarial robust training loop for the configured number of epochs.
     Finally, saves the robust model state dictionary to the designated path.
     """
+    # Step 1: Detect and set device (GPU/CUDA or CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using Device: {device}")
 
+    # Step 2: Initialize CIFAR-10 data loaders
     train_loader, test_loader, _ = get_data_loaders(batch_size=BATCH_SIZE)
+    
+    # Step 3: Instantiate model and transfer it to the target device
     model = SimpleCNN().to(device)
 
+    # Step 4: Define optimizer and loss criterion
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     criterion = nn.CrossEntropyLoss()
 
+    # Step 5: Ensure output models directory exists
     os.makedirs("models", exist_ok=True)
 
     print("\n--- Initiating Boundary Regularization ---")
+    
+    # Step 6: Execute the robust training loop over epochs
     for epoch in range(1, EPOCHS + 1):
         loss, clean_acc, adv_acc = train_robust_epoch(model, train_loader, optimizer, criterion, device)
 
@@ -129,6 +149,7 @@ def main():
               f"Clean Acc: {clean_acc:.2f}% | " 
               f"Robust Acc: {adv_acc:.2f}%")                       
 
+    # Step 7: Serialize and save final model checkpoint
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
     print(f"\nModel checkpoint successfully compiled and saved to: {MODEL_SAVE_PATH}")
 
