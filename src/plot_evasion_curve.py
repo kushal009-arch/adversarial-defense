@@ -44,6 +44,37 @@ def generate_evasion_curve(sweep_data, save_path="reports/figures/evasion_curve.
     plt.close()
     print(f"[INFO] Evasion curve figure successfully written to: {save_path}")
 
+def plot_audit_curves(epsilons, baseline_wb, robust_wb, robust_bb, save_path="reports/figures/audit_evasion_curve.png"):
+    """
+    Plots a multi-line comparison of baseline and robust models under white-box and black-box attacks.
+    """
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(9, 6), dpi=300)
+
+    # Plot each series
+    ax.plot(epsilons, baseline_wb, marker='o', color='#d9534f', linestyle='-', linewidth=2.5, label="Baseline (White-Box)")
+    ax.plot(epsilons, robust_wb, marker='s', color='#2ca02c', linestyle='-', linewidth=2.5, label="Robust (White-Box)")
+    ax.plot(epsilons, robust_bb, marker='^', color='#1f77b4', linestyle='--', linewidth=2.5, label="Robust (Black-Box/Transfer)")
+
+    # Title and labels
+    ax.set_title("Security Audit: Model Robustness Sweep", fontsize=14, fontweight='bold', pad=15)
+    ax.set_xlabel(r"Attack Strength ($\epsilon$)", fontsize=11, labelpad=10)
+    ax.set_ylabel("Accuracy (%)", fontsize=11, labelpad=10)
+
+    # Styling limits and ticks
+    ax.set_ylim(-5, 105)
+    ax.set_xticks(epsilons)
+    
+    # Legend
+    ax.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="none")
+    plt.tight_layout()
+
+    # Save output
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    plt.savefig(save_path, bbox_inches='tight')
+    plt.close()
+    print(f"[INFO] Multi-curve audit plot successfully saved to: {save_path}")
+
 if __name__ == "__main__":
     # live sweep data collected from the Session 7 test evaluation
     session_metrics = {
