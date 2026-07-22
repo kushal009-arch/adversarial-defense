@@ -38,6 +38,12 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Utilizes a mixed-batch training strategy to optimize both clean accuracy and adversarial robustness.
   - Implements a loss blending technique where the total loss is a weighted sum (controlled by `ALPHA = 0.5`) of clean and FGSM-perturbed image loss.
   - Fully annotated with docstrings and clean code layout.
+- **`src/security_audit.py`**: A white-box vs. black-box audit module.
+  - Performs performance sweeps across multiple epsilon perturbation budgets.
+  - Compares baseline vs. robust model accuracy under direct white-box attacks and surrogate black-box transfer attacks.
+  - Generates multi-curve line plots saved to `reports/figures/audit_evasion_curve.png`.
+- **`src/app.py`**: An interactive Streamlit web dashboard.
+  - Features an interactive UI allowing users to upload images, select model architectures, and inspect real-time image preprocessing and adversarial inference predictions.
 
 ## Getting Started
 
@@ -47,6 +53,7 @@ Make sure you have the following installed:
 - PyTorch
 - torchvision (required for loading CIFAR-10 data)
 - pandas, matplotlib, seaborn (required for evaluating and visualizing results)
+- streamlit (required for running the web dashboard)
 
 ### Running the Project
 
@@ -74,31 +81,43 @@ You can execute the mixed robust training pipeline using a combination of clean 
 python src/train_robust.py
 ```
 
-#### 5. Evaluate the Model
+#### 5. Run Security Audit
+You can run the security audit script to compare baseline and robust models under white-box and black-box transfer attacks:
+```bash
+python src/security_audit.py
+```
+
+#### 6. Launch Interactive Streamlit Dashboard
+You can run the web dashboard to interactively test uploaded images against baseline and robust models:
+```bash
+python -m streamlit run src/app.py
+```
+
+#### 7. Evaluate the Model
 You can evaluate the trained model and view the accuracy and confusion matrix:
 ```bash
 python src/evaluate.py
 ```
 
-#### 6. Run Adversarial Attack (FGSM)
+#### 8. Run Adversarial Attack (FGSM)
 You can run the attack script to extract the gradient map and generate a perturbed adversarial image using the FGSM attack:
 ```bash
 python src/attack.py
 ```
 
-#### 7. Evaluate Evasion Curve
+#### 9. Evaluate Evasion Curve
 You can run the evasion testing script to trace the model's robust accuracy across a range of epsilon perturbation budgets:
 ```bash
 python src/evasion_testing.py
 ```
 
-#### 8. Plot Evasion Curve
+#### 10. Plot Evasion Curve
 You can run the plotting script to generate and save a visualization of the evasion curve:
 ```bash
 python src/plot_evasion_curve.py
 ```
 
-#### 9. Visualize Adversarial Illusion Panel
+#### 11. Visualize Adversarial Illusion Panel
 You can run the visualization script to generate a side-by-side comparison of clean and adversarial images:
 ```bash
 python src/visualize_illusion.py
