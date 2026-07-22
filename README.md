@@ -42,7 +42,7 @@ This repository is dedicated to exploring and implementing techniques for advers
   - Performs performance sweeps across multiple epsilon perturbation budgets.
   - Compares baseline vs. robust model accuracy under direct white-box attacks and surrogate black-box transfer attacks.
   - Generates multi-curve line plots saved to `reports/figures/audit_evasion_curve.png`.
-- **`src/app.py`**: An interactive Streamlit web dashboard.
+- **`app.py`**: An interactive Streamlit web dashboard.
   - Features an interactive UI allowing users to upload images, select model architectures, and inspect real-time image preprocessing and adversarial inference predictions.
 
 ## Getting Started
@@ -90,7 +90,7 @@ python src/security_audit.py
 #### 6. Launch Interactive Streamlit Dashboard
 You can run the web dashboard to interactively test uploaded images against baseline and robust models:
 ```bash
-python -m streamlit run src/app.py
+streamlit run app.py
 ```
 
 #### 7. Evaluate the Model
