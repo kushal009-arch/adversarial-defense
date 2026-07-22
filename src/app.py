@@ -52,3 +52,41 @@ transform = transforms.Compose([
     transforms.ToTensor(), 
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
+
+# 5. UI Layout: Sidebar and Main Content
+
+with st.sidebar:
+    st.header("Controls and Settings")
+    st.markdown("Select options to evaluate model against adversarial noise.")
+
+    selected_model_type = st.radio(
+        "Choose Model Architecture:",
+        ["Baseline Model (Standard)", "Robust Model (Adversarial Trained)"]
+    )
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Input Image")
+    uploaded_file = st.file_uploader(
+        "Upload a CIFAR-10 suitable image (PNG, JPEG)", 
+        type=["png", "jpeg", "jpg"]
+    )
+
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert("RGB")
+        st.image(image, caption="Uploaded Image", use_container_width=True)
+
+        # Preprocess Tensor for model inference: add a batch dimension at index 0 -> shape becomes (1, 3, 32, 32)
+        # PyTorch models expect input shape of (Batch_Size, Channels, Height, Width)
+        input_tensor = transform(image).unsqueeze(0)
+        st.success(f"Image processed into Tensor shape: '{tuple(input_tensor.shape)}'")
+
+with col2:
+    st.subheader("Model Output")
+    if uploaded_file is None:
+        st.info("Please upload an image on the left column to run inference.")
+    else:
+        st.write(f"**Active Model:** '{selected_model_type}'")
+        
+        # Inference Logic
