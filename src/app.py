@@ -1,8 +1,9 @@
 """
-The objective is to write the base layout for app.py, define CIFAR 10 label mapping, 
-set up file uploader, and leverage seteamlit's caching mechanism to efficiently load models 
-without rerunning initialization on every user interaction. 
+Streamlit Web Dashboard for CIFAR-10 Adversarial Robustness Explorer.
 
+This module provides an interactive interface allowing users to upload images,
+select between standard (baseline) and adversarial-trained (robust) CNN models,
+and inspect image preprocessing and inference predictions.
 """
 
 import streamlit as st 
@@ -11,50 +12,53 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image 
 
-# 1. Page configuration and custom setup
-
+# Step 1: Page configuration and custom layout setup
 st.set_page_config(
-    page_title = "CIFAR-10 Adversarial Robustness Dashboard", 
-    page_icon = "Adversarial-Defense Dashboard",
-    layout = "wide"
+    page_title="CIFAR-10 Adversarial Robustness Dashboard", 
+    page_icon="🛡️",
+    layout="wide"
 )
 
 st.title("CIFAR-10 Adversarial Robustness Explorer")
 st.caption("A Deep Learning Security Showcase analyzing Fast Gradient Sign Method (FGSM) attacks.")
-
 st.divider()
 
-# 2. CIFAR 10 Label Mapping
+# Step 2: CIFAR-10 label mapping definitions
 CIFAR10_CLASSES = [
     "Airplane", "Automobile", "Bird", "Cat", "Deer", "Dog", 
     "Frog", "Horse", "Ship", "Truck"
 ]
 
-# 3. Model Loading with Caching
-
+# Step 3: Model loading utility with Streamlit resource caching
 @st.cache_resource
 def load_model(model_path: str):
     """
-    Loads and caches PyTorch model weights to prevent reload overhead. 
+    Loads and caches PyTorch SimpleCNN model weights to prevent reload overhead during UI re-runs.
+
+    Args:
+        model_path (str): Relative or absolute path to the saved .pth model state dictionary.
+
+    Returns:
+        torch.nn.Module: The loaded SimpleCNN model set to evaluation mode (`.eval()`).
     """
     from model import SimpleCNN
     model = SimpleCNN()
-    model.load_state_dict(torch.load(model_path, map_location = torch.device('cpu')))
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
     return model
 
+# Step 4: Session state initialization for tracking user session flags
 if "model_loader" not in st.session_state:
     st.session_state["model_loader"] = True
 
-# 4. Image Preprocessing Pipeline
+# Step 5: Image preprocessing pipeline matching CIFAR-10 training transformations
 transform = transforms.Compose([
     transforms.Resize((32, 32)), 
     transforms.ToTensor(), 
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-# 5. UI Layout: Sidebar and Main Content
-
+# Step 6: UI Layout - Sidebar Controls
 with st.sidebar:
     st.header("Controls and Settings")
     st.markdown("Select options to evaluate model against adversarial noise.")
@@ -64,6 +68,7 @@ with st.sidebar:
         ["Baseline Model (Standard)", "Robust Model (Adversarial Trained)"]
     )
 
+# Step 7: Main Content - Two-column interactive interface
 col1, col2 = st.columns(2)
 
 with col1:
@@ -89,4 +94,4 @@ with col2:
     else:
         st.write(f"**Active Model:** '{selected_model_type}'")
         
-        # Inference Logic
+        # Step 8: Inference logic execution placeholder
