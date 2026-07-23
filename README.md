@@ -119,7 +119,7 @@ python src/train_robust.py
 ### 3. Launching Dashboard
 
 ```bash
-streamlit run src/app.py
+python -m streamlit run .\src\app.py
 ```
 
 ---
