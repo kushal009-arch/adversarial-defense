@@ -3,8 +3,7 @@ Streamlit Web Dashboard for CIFAR-10 Adversarial Robustness Explorer.
 
 This module provides an interactive interface allowing users to upload images,
 select ground-truth labels, evaluate baseline vs. robust model architectures in real-time,
-and inspect image preprocessing, attack anatomy (clean image, magnified noise, adversarial sample),
-and FGSM evasion predictions with head-to-head probability distribution charts.
+and inspect image preprocessing, attack anatomy, and styled Plotly evasion telemetry.
 """
 
 import gc
@@ -15,9 +14,53 @@ import torchvision.transforms as transforms
 from PIL import Image 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 
 from attack import fgsm_attack
 from src.model import SimpleCNN
+
+# Step 1: Page configuration setup
+st.set_page_config(
+    page_title="CIFAR-10 Adversarial Robustness Dashboard", 
+    layout="wide"
+)
+
+# Custom CSS Theme Injection
+st.markdown("""
+<style>
+    /* Card Container Styling */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stBlock"] {
+        border-radius: 12px;
+        padding: 1rem;
+    }
+    
+    /* Custom Metric Cards */
+    div[data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Section Headers */
+    .sub-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #888888;
+        margin-bottom: 0.5rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("CIFAR-10 Adversarial Robustness Explorer")
+st.caption("A Deep Learning Security Showcase analyzing Fast Gradient Sign Method (FGSM) attacks.")
+st.divider()
+
+# Step 2: CIFAR-10 label mapping definitions
+CIFAR10_CLASSES = [
+    "Airplane", "Automobile", "Bird", "Cat", "Deer", "Dog", 
+    "Frog", "Horse", "Ship", "Truck"
+]
 
 def format_tensor_for_display(tensor):
     """
@@ -43,22 +86,33 @@ def load_and_preprocess_image(uploaded_file):
     raw_image = Image.open(uploaded_file).convert("RGB")
     return raw_image
 
-# Page configuration and layout setup
-st.set_page_config(
-    page_title="CIFAR-10 Adversarial Robustness Dashboard", 
-    page_icon="🛡️",
-    layout="wide"
-)
-
-st.title("🛡️ CIFAR-10 Adversarial Robustness Explorer")
-st.caption("A Deep Learning Security Showcase analyzing Fast Gradient Sign Method (FGSM) attacks.")
-st.divider()
-
-# CIFAR-10 label mapping definitions
-CIFAR10_CLASSES = [
-    "Airplane", "Automobile", "Bird", "Cat", "Deer", "Dog", 
-    "Frog", "Horse", "Ship", "Truck"
-]
+def create_styled_probability_chart(df, predicted_class, true_class):
+    """
+    Generates a horizontal Plotly bar chart with dynamic color-coding:
+    Red for misclassifications, Green for correct predictions, Blue for other classes.
+    """
+    colors = [
+        '#EF553B' if c == predicted_class and c != true_class 
+        else '#00CC96' if c == predicted_class 
+        else '#636EFA' for c in df['Class']
+    ]
+    
+    fig = px.bar(
+        df, 
+        x='Probability', 
+        y='Class', 
+        orientation='h',
+        text_auto='.1%',
+        title="Class Probability Distribution"
+    )
+    fig.update_traces(marker_color=colors, textposition='outside')
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=30, b=10),
+        xaxis_range=[0, 1],
+        height=280,
+        yaxis={'categoryorder': 'total ascending'}
+    )
+    return fig
 
 # Model loading utility with Streamlit resource caching
 @st.cache_resource
@@ -80,7 +134,7 @@ def load_all_models():
 
 baseline_net, robust_net, device = load_all_models()
 
-# Define image transformation matching CIFAR-10 training
+# Image transformation matching CIFAR-10 training
 transform = transforms.Compose([
     transforms.Resize((32, 32)),
     transforms.ToTensor(),
@@ -88,31 +142,30 @@ transform = transforms.Compose([
 ])
 
 # Sidebar Controls & File Upload
-st.sidebar.header("Controls & Setup")
+st.sidebar.header("Controls and Setup")
 uploaded_file = st.sidebar.file_uploader("Upload an Image", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
-    # Safely load and convert image
+    # Load and preprocess image
     raw_image = load_and_preprocess_image(uploaded_file)
     clean_tensor = transform(raw_image).unsqueeze(0).to(device)
 
     # Show clean baseline image in sidebar
     st.sidebar.image(raw_image, caption="Clean Uploaded Image", use_container_width=True)
 
-    # =========================================================================
-    # STEP 3: REAL-TIME INTERACTIVE FRAGMENT
-    # =========================================================================
+    # REAL-TIME INTERACTIVE FRAGMENT
     @st.fragment
     def render_attack_fragment(img_tensor):
-        st.subheader("⚡ Real-Time Evasion Diagnostics")
+        st.subheader("Real-Time Evasion Diagnostics")
         
         # User Selection for Ground Truth Label
         true_label_name = st.selectbox("Select Ground Truth Class (Actual Object):", CIFAR10_CLASSES)
-        true_label_idx = torch.tensor([CIFAR10_CLASSES.index(true_label_name)], device=device)
+        true_label_idx = CIFAR10_CLASSES.index(true_label_name)
+        true_label_tensor = torch.tensor([true_label_idx], device=device)
 
         # Interactive Epsilon Slider (0.00 to 0.30)
         epsilon = st.slider(
-            "Adversarial Perturbation Budget (ε)", 
+            "Adversarial Perturbation Budget (Epsilon)", 
             min_value=0.00, 
             max_value=0.30, 
             value=0.00, 
@@ -126,7 +179,7 @@ if uploaded_file is not None:
         base_logits = baseline_net(input_tensor)
 
         # 3. Compute loss w.r.t user-selected True Label and extract gradients
-        loss = F.cross_entropy(base_logits, true_label_idx)
+        loss = F.cross_entropy(base_logits, true_label_tensor)
         baseline_net.zero_grad()
         loss.backward()
 
@@ -142,73 +195,109 @@ if uploaded_file is not None:
             probs_base = F.softmax(adv_out_base, dim=1)[0].cpu().numpy()
             probs_robust = F.softmax(adv_out_robust, dim=1)[0].cpu().numpy()
 
-        # Compute absolute noise and magnify for visual inspection
-        noise_tensor = (perturbed_tensor - input_tensor).abs() * 5.0
+        base_pred_idx = probs_base.argmax()
+        base_pred_class = CIFAR10_CLASSES[base_pred_idx]
+        base_conf = probs_base[base_pred_idx] * 100
 
-        st.divider()
-        st.subheader("🖼️ Attack Anatomy")
-        
-        # 3-Column Layout
-        col1, col2, col3 = st.columns(3)
+        robust_pred_idx = probs_robust.argmax()
+        robust_pred_class = CIFAR10_CLASSES[robust_pred_idx]
+        robust_conf = probs_robust[robust_pred_idx] * 100
 
-        with col1:
-            st.image(
-                format_tensor_for_display(img_tensor), 
-                caption="Clean Input (x)", 
-                use_container_width=True
-            )
+        # Tabbed Deep-Dive Architecture
+        tab1, tab2, tab3 = st.tabs([
+            "Real-Time Evasion Studio", 
+            "Gradient Anatomy Map", 
+            "Robustness Benchmark"
+        ])
 
-        with col2:
-            st.image(
-                format_tensor_for_display(noise_tensor), 
-                caption=f"Magnified Noise (5x | ε={epsilon:.2f})", 
-                use_container_width=True
-            )
+        with tab1:
+            st.markdown("<div class='sub-header'>Head-to-Head Model Evaluation</div>", unsafe_allow_html=True)
 
-        with col3:
-            st.image(
-                format_tensor_for_display(perturbed_tensor), 
-                caption=f"Adversarial Sample (x_adv | ε={epsilon:.2f})", 
-                use_container_width=True
-            )
+            # Security Threat Banners
+            if base_pred_idx != true_label_idx:
+                st.error(f"Evasion Attack Successful: Baseline model forced to misclassify sample as {base_pred_class}.")
+            else:
+                st.success("Model Stable: Baseline prediction holds under current perturbation budget.")
 
-        # Head-to-Head Model Evaluation
-        st.divider()
-        st.subheader("⚔️ Head-to-Head Model Evaluation")
-        
-        col_base, col_robust = st.columns(2)
+            col_base, col_robust = st.columns(2)
 
-        # 1. Baseline Model Panel
-        with col_base:
-            base_pred_idx = probs_base.argmax()
-            base_conf = probs_base[base_pred_idx] * 100
+            # 1. Baseline Model Panel
+            with col_base:
+                with st.container(border=True):
+                    st.markdown("<div class='sub-header'>Standard Baseline Model</div>", unsafe_allow_html=True)
+                    st.metric("Predicted Class", base_pred_class)
+                    st.metric("Confidence", f"{base_conf:.2f}%")
+                    
+                    df_base = pd.DataFrame({
+                        'Class': CIFAR10_CLASSES, 
+                        'Probability': probs_base
+                    })
+                    st.plotly_chart(
+                        create_styled_probability_chart(df_base, base_pred_class, true_label_name), 
+                        use_container_width=True
+                    )
+
+            # 2. Adversarially Trained (Robust) Model Panel
+            with col_robust:
+                with st.container(border=True):
+                    st.markdown("<div class='sub-header'>Adversarially Trained Model</div>", unsafe_allow_html=True)
+                    st.metric("Predicted Class", robust_pred_class)
+                    st.metric("Confidence", f"{robust_conf:.2f}%")
+                    
+                    df_robust = pd.DataFrame({
+                        'Class': CIFAR10_CLASSES, 
+                        'Probability': probs_robust
+                    })
+                    st.plotly_chart(
+                        create_styled_probability_chart(df_robust, robust_pred_class, true_label_name), 
+                        use_container_width=True
+                    )
+
+        with tab2:
+            st.markdown("<div class='sub-header'>Attack Anatomy Map</div>", unsafe_allow_html=True)
             
-            st.error("🔴 **Standard Baseline Model**")
-            st.metric("Predicted Class", CIFAR10_CLASSES[base_pred_idx])
-            st.metric("Confidence", f"{base_conf:.2f}%")
-            
-            # Interactive Probability Bar Chart
-            df_base = pd.DataFrame({
-                'Class': CIFAR10_CLASSES, 
-                'Probability': probs_base
-            })
-            st.bar_chart(df_base.set_index('Class'))
+            # Compute absolute noise and magnify for visual inspection
+            noise_tensor = (perturbed_tensor - input_tensor).abs() * 5.0
 
-        # 2. Adversarially Trained (Robust) Model Panel
-        with col_robust:
-            robust_pred_idx = probs_robust.argmax()
-            robust_conf = probs_robust[robust_pred_idx] * 100
-            
-            st.success("🟢 **Adversarially Trained Model**")
-            st.metric("Predicted Class", CIFAR10_CLASSES[robust_pred_idx])
-            st.metric("Confidence", f"{robust_conf:.2f}%")
-            
-            # Interactive Probability Bar Chart
-            df_robust = pd.DataFrame({
-                'Class': CIFAR10_CLASSES, 
-                'Probability': probs_robust
-            })
-            st.bar_chart(df_robust.set_index('Class'))
+            with st.container(border=True):
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.image(
+                        format_tensor_for_display(img_tensor), 
+                        caption="Clean Input (x)", 
+                        use_container_width=True
+                    )
+
+                with col2:
+                    st.image(
+                        format_tensor_for_display(noise_tensor), 
+                        caption=f"Magnified Noise (5x | Epsilon = {epsilon:.2f})", 
+                        use_container_width=True
+                    )
+
+                with col3:
+                    st.image(
+                        format_tensor_for_display(perturbed_tensor), 
+                        caption=f"Adversarial Sample (x_adv | Epsilon = {epsilon:.2f})", 
+                        use_container_width=True
+                    )
+
+        with tab3:
+            st.markdown("<div class='sub-header'>Robustness Benchmark & Telemetry</div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.write("**Model Evaluation Telemetry Summary**")
+                telemetry_df = pd.DataFrame({
+                    "Architecture": ["Standard Baseline CNN", "Adversarially Trained CNN"],
+                    "Target Class": [true_label_name, true_label_name],
+                    "Predicted Class": [base_pred_class, robust_pred_class],
+                    "Confidence Score": [f"{base_conf:.2f}%", f"{robust_conf:.2f}%"],
+                    "Status": [
+                        "Vulnerable" if base_pred_idx != true_label_idx else "Hardened",
+                        "Vulnerable" if robust_pred_idx != true_label_idx else "Hardened"
+                    ]
+                })
+                st.dataframe(telemetry_df, use_container_width=True)
 
         # Free autograd references
         gc.collect()
@@ -217,4 +306,4 @@ if uploaded_file is not None:
     render_attack_fragment(clean_tensor)
 
 else:
-    st.info("👈 Upload a PNG or JPG image from the sidebar to test real-time adversarial evasion.")
+    st.info("Upload a PNG or JPG image from the sidebar to test real-time adversarial evasion.")
