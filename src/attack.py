@@ -1,107 +1,77 @@
 """
-Adversarial Attack Utilities.
+Adversarial Attack Utilities for Fast Gradient Sign Method (FGSM).
 
-This module provides functions to extract gradients from an input image
-with respect to the model's loss, which is the core step for generating
-adversarial examples.
+Provides gradient extraction functions and FGSM adversarial noise injection.
 """
 
+from typing import Optional, Tuple
 import torch 
 import torch.nn.functional as F 
 from data_loader import get_data_loaders
 from model import SimpleCNN
 
-def extract_image_gradient(model=None, data=None, target=None):
+def extract_image_gradient(
+    model: Optional[torch.nn.Module] = None, 
+    data: Optional[torch.Tensor] = None, 
+    target: Optional[torch.Tensor] = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Loads a pre-trained CNN model and computes the gradient of the loss
-    with respect to a single test image.
-    
-    This gradient tells us how we need to perturb the image pixels to
-    increase the model's classification loss (making it misclassify).
+    Computes the loss gradient with respect to an input image tensor.
+
+    Args:
+        model (Optional[torch.nn.Module]): PyTorch model instance. Defaults to baseline SimpleCNN if None.
+        data (Optional[torch.Tensor]): Input image tensor batch. Defaults to next test_loader item if None.
+        target (Optional[torch.Tensor]): Target class label tensor. Defaults to next test_loader item if None.
 
     Returns:
-        tuple: A tuple containing:
-            - data (torch.Tensor): The original input image tensor.
-            - gradient_map (torch.Tensor): The gradient of the loss with respect to the input image.
-            - target (torch.Tensor): The true classification label of the image.
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A 3-tuple containing:
+            - data: Original input image tensor with tracked autograd gradients.
+            - gradient_map: Detached loss gradient tensor w.r.t input data.
+            - target: True target class label tensor.
     """
-    # Use GPU if available, otherwise fallback to CPU
     if model is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # 1. Load the trained model and put it in evaluation mode
         model = SimpleCNN().to(device)
         model.load_state_dict(torch.load("models/baseline_model.pth", map_location=device))
         model.eval()
-    
     else:
         device = next(model.parameters()).device
 
     if data is None or target is None:
-        # 2. Get a single image and its correct label from the test dataset
         _, test_loader, _ = get_data_loaders(batch_size=1)
         data, target = next(iter(test_loader))
         data, target = data.to(device), target.to(device)
 
-    # 3. Tell PyTorch to track gradients for the input image itself
-    # (By default, PyTorch only tracks gradients for model parameters)
     data.requires_grad = True
-
-    # 4. Perform a forward pass to get the model's predictions
     output = model(data)
-
-    # 5. Calculate the loss between predictions and the true label
     loss = F.cross_entropy(output, target)
-    
-    # 6. Clear any existing gradients on the model parameters
     model.zero_grad()
-
-    # 7. Perform a backward pass to calculate gradients
     loss.backward()
 
-    # 8. Retrieve the gradient of the loss with respect to the input image.
-    # We use .detach() to safely access the gradient tensor without tracking history.
     gradient_map = data.grad.detach()
-
-    # Log shape and sample details to verify the output
-    # print(f"Original Image Shape: {data.shape}")
-    # print(f"Gradient Map Shape: {gradient_map.shape}")
-    # print(f"\nSample Gradient Values (first 5 pixels of the red channel):")
-    # print(gradient_map[0][0][0][:5])
-
     return data, gradient_map, target
 
-def fgsm_attack(image, epsilon, data_grad):
+def fgsm_attack(image: torch.Tensor, epsilon: float, data_grad: torch.Tensor) -> torch.Tensor:
     """
-    Performs the Fast Gradient Sign Method (FGSM) attack on an input image.
+    Applies Fast Gradient Sign Method (FGSM) perturbation to an input image.
 
-    This method perturbs the input image in the direction of the gradient of the loss
-    with respect to the image, scaled by epsilon, in order to maximize the loss.
+    Formula: x_adv = clamp(x + epsilon * sign(gradient_x(loss)), -1.0, 1.0)
 
     Args:
-        image (torch.Tensor): The original input image tensor.
-        epsilon (float): The step size / perturbation magnitude.
-        data_grad (torch.Tensor): The gradient of the loss with respect to the input image.
+        image (torch.Tensor): Original input image tensor.
+        epsilon (float): Perturbation magnitude parameter (step size).
+        data_grad (torch.Tensor): Loss gradient tensor w.r.t input image.
 
     Returns:
-        torch.Tensor: The perturbed, adversarial image tensor.
+        torch.Tensor: Perturbed adversarial image tensor clamped to [-1.0, 1.0].
     """
-    # 1. Collect element-wise sign of the data gradient
     signed_data_grad = data_grad.sign()
-
-    # 2. Create the perturbed image
     perturbed_image = image + epsilon * signed_data_grad
-
-    # 3. Snap any out-of-bounds pixel values back to the valid [-1, 1] range
-    perturbed_image = torch.clamp(perturbed_image, -1, 1) 
-
+    perturbed_image = torch.clamp(perturbed_image, -1.0, 1.0)
     return perturbed_image
-    
+
 if __name__ == "__main__":
     clean_image, raw_grad, true_label = extract_image_gradient()
-
-    epsilon = 0.05
-
-    adv_image = fgsm_attack(clean_image, epsilon, raw_grad)
-
-    print(f"Adversarial Image Successfully generated. Shape: {adv_image.shape}")
+    epsilon_val = 0.05
+    adv_image = fgsm_attack(clean_image, epsilon_val, raw_grad)
+    print(f"Adversarial Image generated successfully. Shape: {adv_image.shape}")

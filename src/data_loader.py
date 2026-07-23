@@ -1,37 +1,19 @@
 """
-Data loading utilities for CIFAR-10.
+CIFAR-10 Data Loading Utilities.
 
-This module does three simple jobs:
-1) Download/load the CIFAR-10 dataset.
-2) Apply basic image transforms (tensor conversion + normalization).
-3) Return PyTorch DataLoader objects for training and testing.
-
-The code is intentionally written in a beginner-friendly style with clear names
-and explanations.
+Downloads, transforms, and creates PyTorch DataLoaders for CIFAR-10 dataset batches.
 """
 
 from typing import Tuple
-
 import torch 
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-
-# Class names in CIFAR-10, in label-index order (0 to 9).
 CIFAR10_CLASSES: Tuple[str, ...] = (
-    "plane",
-    "car",
-    "bird",
-    "cat",
-    "deer",
-    "dog",
-    "frog",
-    "horse",
-    "ship",
-    "truck",
+    "plane", "car", "bird", "cat", "deer",
+    "dog", "frog", "horse", "ship", "truck"
 )
-
 
 def get_data_loaders(
     batch_size: int = 128,
@@ -40,34 +22,25 @@ def get_data_loaders(
     shuffle_test: bool = False
 ) -> Tuple[DataLoader, DataLoader, Tuple[str, ...]]:
     """
-    Create train/test DataLoaders for CIFAR-10.
+    Constructs train and test DataLoaders for the CIFAR-10 dataset.
 
     Args:
-        batch_size: Number of images per batch.
-        data_dir: Folder where CIFAR-10 is stored (or downloaded to).
-        num_workers: Number of background worker processes used by DataLoader.
+        batch_size (int): Mini-batch size for DataLoader instances. Defaults to 128.
+        data_dir (str): Root directory path to store/download CIFAR-10 data. Defaults to "./data".
+        num_workers (int): Number of background subprocesses for data loading. Defaults to 2.
+        shuffle_test (bool): Whether to shuffle test dataset order. Defaults to False.
 
     Returns:
-        A tuple of:
-        - train_loader: DataLoader for training data (shuffled each epoch).
-        - test_loader: DataLoader for test data (not shuffled).
-        - classes: Tuple of CIFAR-10 class names.
-
-    Notes:
-        - `ToTensor()` converts pixel values from [0, 255] to [0.0, 1.0].
-        - `Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))` shifts each channel
-          from [0.0, 1.0] approximately to [-1.0, 1.0].
+        Tuple[DataLoader, DataLoader, Tuple[str, ...]]: A 3-tuple containing:
+            - train_loader: Training DataLoader instance (shuffled).
+            - test_loader: Evaluation DataLoader instance.
+            - classes: Tuple of class name strings.
     """
-    # Step 1: Define how every image should be transformed.
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        ]
-    )
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
 
-    # Step 2: Build dataset objects.
-    # `download=True` means the dataset is downloaded automatically if missing.
     train_dataset = torchvision.datasets.CIFAR10(
         root=data_dir,
         train=True,
@@ -81,28 +54,17 @@ def get_data_loaders(
         transform=transform,
     )
 
-    # Step 3: Wrap datasets in DataLoaders to iterate in mini-batches.
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,  # Shuffle training data to reduce order bias.
+        shuffle=True,
         num_workers=num_workers,
     )
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=shuffle_test,  # Keep test order stable for evaluation.
+        shuffle=shuffle_test,
         num_workers=num_workers,
     )
 
     return train_loader, test_loader, CIFAR10_CLASSES
-
-
-if __name__ == "__main__":
-    # Small smoke test to show that the loader works.
-    train_loader, _, classes = get_data_loaders(batch_size=4)
-    images, labels = next(iter(train_loader))
-
-    label_names = [classes[label_idx] for label_idx in labels.tolist()]
-    print(f"Batch image tensor shape: {images.shape}")
-    print(f"Labels in this batch: {label_names}")
