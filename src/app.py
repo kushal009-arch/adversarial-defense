@@ -230,7 +230,7 @@ transform = transforms.Compose([
 # Sidebar Controls & File Upload
 st.sidebar.header("Controls and Setup")
 
-# Feature 1: Preset Sample Gallery Selector
+# Preset Sample Gallery Selector
 input_mode = st.sidebar.radio("Select Image Source:", ["Preset Gallery Image", "Upload Custom Image"])
 
 selected_image = None
@@ -243,7 +243,7 @@ else:
     if uploaded_file is not None:
         selected_image = uploaded_file
 
-# Feature 6: Model Architecture Telemetry & Layer Inspector (Sidebar Expander)
+# Model Architecture Telemetry & Layer Inspector (Sidebar Expander)
 with st.sidebar.expander("Model Architecture Specifications"):
     st.markdown("""
     **SimpleCNN Specs:**
@@ -320,7 +320,7 @@ if selected_image is not None:
         robust_pred_class = CIFAR10_CLASSES[robust_pred_idx]
         robust_conf = probs_robust[robust_pred_idx] * 100
 
-        # Feature 3: Defense Delta & Robustness Gain Calculation
+        # Defense Delta & Robustness Gain Calculation
         robustness_gain = robust_conf - base_conf
 
         # Multi-Tab Navigation Architecture
@@ -339,7 +339,7 @@ if selected_image is not None:
             else:
                 st.success("Model Stable: Baseline prediction holds under current perturbation budget.")
 
-            # Feature 3: Defense Delta Metric Card
+            # Defense Delta Metric Card
             with st.container(border=True):
                 delta_col1, delta_col2, delta_col3 = st.columns(3)
                 with delta_col1:
@@ -400,12 +400,15 @@ if selected_image is not None:
                     img2=perturbed_pil,
                     label1="Clean Image",
                     label2=f"FGSM Attack (Epsilon={epsilon:.2f})",
-                    starting_position=50
+                    starting_position=50,
+                    show_labels=True,
+                    make_responsive=True,
+                    in_memory=True
                 )
 
             st.markdown("<div class='sub-header'>3-Panel Image Decomposition</div>", unsafe_allow_html=True)
             
-            # Feature 4: Multi-Mode Noise Heatmap Selector
+            # Multi-Mode Noise Heatmap Selector
             heatmap_mode = st.selectbox(
                 "Select Noise Heatmap Mode:", 
                 ["Magnified Difference (5x)", "Plasma Heatmap", "Gradient Sign Map"]
@@ -440,9 +443,9 @@ if selected_image is not None:
                     )
 
         with tab3:
-            st.markdown("<div class='sub-header'>Real-Time Evasion Curve & Telemetry</div>", unsafe_allow_html=True)
+            st.markdown("<div class='sub-header'>Real-Time Evasion Curve and Telemetry</div>", unsafe_allow_html=True)
             
-            # Feature 2: Dynamic Epsilon Sweep Calculation
+            # Dynamic Epsilon Sweep Calculation
             sweep_epsilons = [0.00, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
             sweep_base_confs = []
             sweep_robust_confs = []
