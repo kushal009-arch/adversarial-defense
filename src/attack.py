@@ -92,8 +92,8 @@ def fgsm_attack(image, epsilon, data_grad):
     # 2. Create the perturbed image
     perturbed_image = image + epsilon * signed_data_grad
 
-    # 3. Snap any out-of-bounds pixel values back to the valid [0, 1] range
-    perturbed_image = torch.clamp(perturbed_image, 0, 1) 
+    # 3. Snap any out-of-bounds pixel values back to the valid [-1, 1] range
+    perturbed_image = torch.clamp(perturbed_image, -1, 1) 
 
     return perturbed_image
     
